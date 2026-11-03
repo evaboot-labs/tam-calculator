@@ -1,0 +1,13 @@
+{
+  "name": "tam-calculator",
+  "version": "1.0.0",
+  "description": "Calculate TAM, SAM and SOM bottom-up from LinkedIn Sales Navigator account counts: one account search per company-size band, a SAM and SOM filter, counts times ACV, with double-counting checks.",
+  "author": { "name": "Evaboot", "url": "https://evaboot.com" },
+  "homepage": "https://evaboot.com/blog/how-to-calculate-tam",
+  "repository": "https://github.com/evaboot-labs/tam-calculator",
+  "license": "MIT",
+  "privacyPolicyUrl": "https://evaboot.com/privacy-policy",
+  "keywords": ["tam", "market-sizing", "sales-navigator", "tam-sam-som", "evaboot", "mcp", "n8n"],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json"
+}
