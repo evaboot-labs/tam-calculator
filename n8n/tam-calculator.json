@@ -1,0 +1,88 @@
+{
+  "name": "TAM calculator (Sales Navigator counts)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b738bc44-ac90-47e2-b6b1-18f8a81a0edd",
+      "name": "Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Edit your market here: industries, headcount bands with their ACV (annual contract value),\n// SAM regions, the SOM filter and share, then the counts you read in Sales Navigator.\nreturn [{ json: {\n  \"name\": \"Sales tool for software companies\",\n  \"date\": \"2026-11-03\",\n  \"industries\": [\n    {\n      \"id\": \"4\",\n      \"label\": \"Software Development\"\n    }\n  ],\n  \"bands\": [\n    {\n      \"id\": \"C\",\n      \"label\": \"11-50\",\n      \"acv\": 1200\n    },\n    {\n      \"id\": \"D\",\n      \"label\": \"51-200\",\n      \"acv\": 4800\n    },\n    {\n      \"id\": \"E\",\n      \"label\": \"201-500\",\n      \"acv\": 12000\n    }\n  ],\n  \"tam_regions\": [],\n  \"sam_regions\": [\n    {\n      \"id\": \"103644278\",\n      \"label\": \"United States\"\n    },\n    {\n      \"id\": \"101165590\",\n      \"label\": \"United Kingdom\"\n    },\n    {\n      \"id\": \"105015875\",\n      \"label\": \"France\"\n    },\n    {\n      \"id\": \"101282230\",\n      \"label\": \"Germany\"\n    }\n  ],\n  \"som_filter\": {\n    \"headcount_growth_min\": 10\n  },\n  \"som_share\": 0.05,\n  \"buyer\": {\n    \"function\": \"25\",\n    \"seniority\": [\n      \"220\",\n      \"300\",\n      \"310\"\n    ]\n  },\n  \"counts\": {\n    \"tam\": {\n      \"C\": \"73K+\",\n      \"D\": \"15K+\",\n      \"E\": \"3.5K+\"\n    },\n    \"sam\": {\n      \"C\": \"27K+\",\n      \"D\": \"7K+\",\n      \"E\": \"2K+\"\n    },\n    \"som_accounts\": \"9.5K+\",\n    \"sam_buyers\": \"19K+\"\n  },\n  \"sample\": {\n    \"exported\": 10,\n    \"matched\": 7,\n    \"safe\": 4,\n    \"note\": \"Evaboot export of 10 sales leaders (people search filtered on where they live; the headquarters version also shows 19K+), 2026-11-03, 10 credits\"\n  }\n} }];\n"
+      },
+      "id": "ce0f8a6e-2bf2-4aab-ab4b-90c2dcce385d",
+      "name": "Your market",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE = 'https://www.linkedin.com/sales/search/';\nconst enc = s => encodeURIComponent(s).replace(/%28/g, '(').replace(/%29/g, ')').replace(/%2C/g, ',').replace(/%3A/g, ':');\nconst flt = (kind, ids) => `(type:${kind},values:List(${ids.map(i => `(id:${i},selectionType:INCLUDED)`).join(',')}))`;\nconst url = (kind, f) => BASE + kind + '?query=' + enc(`(filters:List(${f.join(',')}))`);\nconst accountFilters = (m, bands, regions, growth) => {\n  const f = [flt('COMPANY_HEADCOUNT', bands), flt('INDUSTRY', m.industries.map(i => i.id))];\n  if (regions && regions.length) f.push(flt('REGION', regions.map(r => r.id)));\n  if (growth && m.som_filter && m.som_filter.headcount_growth_min)\n    f.push(`(type:COMPANY_HEADCOUNT_GROWTH,rangeValue:(min:${m.som_filter.headcount_growth_min}))`);\n  return f;\n};\n// '73K+' -> 73000. Sales Navigator rounds down, so these are floors.\nconst num = v => {\n  if (typeof v === 'number') return v;\n  let s = String(v).toUpperCase().replace(/,|\\+|RESULTS/g, '').trim(), mult = 1;\n  if (s.endsWith('K')) { mult = 1e3; s = s.slice(0, -1); } else if (s.endsWith('M')) { mult = 1e6; s = s.slice(0, -1); }\n  return parseFloat(s) * mult;\n};\nconst money = x => x >= 1e9 ? `$${(x / 1e9).toFixed(1)}B` : x >= 1e6 ? `$${(x / 1e6).toFixed(1)}M` : x >= 1e3 ? `$${(x / 1e3).toFixed(1)}K` : `$${Math.round(x)}`;\nconst m = $('Your market').first().json;\n\n// One account search per level and band. Bands never overlap, so their counts add up.\nconst bands = m.bands.map(b => b.id), out = [];\nfor (const b of m.bands) out.push({ key: `tam.${b.id}`, label: `TAM accounts, ${b.label} employees`, url: url('company', accountFilters(m, [b.id], m.tam_regions)) });\nfor (const b of m.bands) out.push({ key: `sam.${b.id}`, label: `SAM accounts, ${b.label} employees`, url: url('company', accountFilters(m, [b.id], m.sam_regions)) });\nif (m.som_filter) out.push({ key: 'som_accounts', label: 'SOM accounts: SAM + headcount growth', url: url('company', accountFilters(m, bands, m.sam_regions, true)) });\nif (m.buyer) {\n  // People search: REGION is where the person lives, so filter on the company's headquarters instead.\n  const f = accountFilters(m, bands, null);\n  f.push(flt('COMPANY_HEADQUARTERS', m.sam_regions.map(r => r.id)));\n  f.push(flt('FUNCTION', [m.buyer.function]));\n  if (m.buyer.seniority) f.push(flt('SENIORITY_LEVEL', m.buyer.seniority));\n  out.push({ key: 'sam_buyers', label: 'People: buyers in SAM accounts (not for revenue)', url: url('people', f) });\n}\nreturn out.map(json => ({ json }));\n"
+      },
+      "id": "e15dd3a1-a0f2-4f85-b5b9-4503cc202cd6",
+      "name": "Sales Navigator searches",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst BASE = 'https://www.linkedin.com/sales/search/';\nconst enc = s => encodeURIComponent(s).replace(/%28/g, '(').replace(/%29/g, ')').replace(/%2C/g, ',').replace(/%3A/g, ':');\nconst flt = (kind, ids) => `(type:${kind},values:List(${ids.map(i => `(id:${i},selectionType:INCLUDED)`).join(',')}))`;\nconst url = (kind, f) => BASE + kind + '?query=' + enc(`(filters:List(${f.join(',')}))`);\nconst accountFilters = (m, bands, regions, growth) => {\n  const f = [flt('COMPANY_HEADCOUNT', bands), flt('INDUSTRY', m.industries.map(i => i.id))];\n  if (regions && regions.length) f.push(flt('REGION', regions.map(r => r.id)));\n  if (growth && m.som_filter && m.som_filter.headcount_growth_min)\n    f.push(`(type:COMPANY_HEADCOUNT_GROWTH,rangeValue:(min:${m.som_filter.headcount_growth_min}))`);\n  return f;\n};\n// '73K+' -> 73000. Sales Navigator rounds down, so these are floors.\nconst num = v => {\n  if (typeof v === 'number') return v;\n  let s = String(v).toUpperCase().replace(/,|\\+|RESULTS/g, '').trim(), mult = 1;\n  if (s.endsWith('K')) { mult = 1e3; s = s.slice(0, -1); } else if (s.endsWith('M')) { mult = 1e6; s = s.slice(0, -1); }\n  return parseFloat(s) * mult;\n};\nconst money = x => x >= 1e9 ? `$${(x / 1e9).toFixed(1)}B` : x >= 1e6 ? `$${(x / 1e6).toFixed(1)}M` : x >= 1e3 ? `$${(x / 1e3).toFixed(1)}K` : `$${Math.round(x)}`;\nconst m = $('Your market').first().json;\n\nconst c = m.counts, warnings = [];\nlet tam = 0, sam = 0, tamN = 0, samN = 0;\nconst rows = m.bands.map(b => {\n  const t = num(c.tam[b.id]), s = num(c.sam[b.id]);\n  if (s > t) warnings.push(`SAM ${b.label} (${c.sam[b.id]}) is above TAM (${c.tam[b.id]}): the SAM search is not inside the TAM search.`);\n  tam += t * b.acv; sam += s * b.acv; tamN += t; samN += s;\n  return { band: b.label, tam_accounts: c.tam[b.id], sam_accounts: c.sam[b.id], acv: b.acv, tam: money(t * b.acv), sam: money(s * b.acv) };\n});\nif (new Set(m.bands.map(b => b.id)).size !== m.bands.length) warnings.push('A headcount band appears twice: each company would be counted twice.');\nfor (const key of ['tam_regions', 'sam_regions']) {\n  const r = (m[key] || []).map(x => x.id);\n  if (new Set(r).size !== r.length) warnings.push(`${key}: a region appears twice.`);\n}\nconst blended = samN ? sam / samN : 0;\nconst somN = c.som_accounts ? num(c.som_accounts) : samN;\nif (somN > samN) warnings.push('SOM accounts are above SAM accounts: the SOM search must add filters to the SAM search.');\nconst share = m.som_share ?? 0.05, som = somN * blended * share;\nconst table = ['| Band | TAM accounts | SAM accounts | ACV | TAM | SAM |', '|---|---|---|---|---|---|',\n  ...rows.map(r => `| ${r.band} | ${r.tam_accounts} | ${r.sam_accounts} | $${r.acv.toLocaleString('en-US')} | ${r.tam} | ${r.sam} |`),\n  `| Total | ${tamN.toLocaleString('en-US')} | ${samN.toLocaleString('en-US')} | | ${money(tam)} | ${money(sam)} |`].join('\\n');\nlet reachable = null;\nif (c.sam_buyers && m.sample && m.sample.exported) reachable = Math.round(num(c.sam_buyers) * m.sample.safe / m.sample.exported);\nreturn [{ json: {\n  market: m.name, tam: money(tam), sam: money(sam), som: money(som),\n  tam_accounts: tamN, sam_accounts: samN, som_accounts: somN, blended_acv: money(blended), som_share: share,\n  som_customers: Math.round(somN * share), reachable_buyers: reachable,\n  checks: warnings.length ? warnings : ['Double-counting checks: OK'], table,\n} }];\n"
+      },
+      "id": "73142431-e07f-43cb-a6e1-7533c0759f81",
+      "name": "TAM SAM SOM",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Run": {
+      "main": [
+        [
+          {
+            "node": "Your market",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Your market": {
+      "main": [
+        [
+          {
+            "node": "Sales Navigator searches",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "TAM SAM SOM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

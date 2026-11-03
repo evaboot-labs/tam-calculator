@@ -1,0 +1,78 @@
+{
+  "name": "Sales tool for software companies",
+  "date": "2026-11-03",
+  "industries": [
+    {
+      "id": "4",
+      "label": "Software Development"
+    }
+  ],
+  "bands": [
+    {
+      "id": "C",
+      "label": "11-50",
+      "acv": 1200
+    },
+    {
+      "id": "D",
+      "label": "51-200",
+      "acv": 4800
+    },
+    {
+      "id": "E",
+      "label": "201-500",
+      "acv": 12000
+    }
+  ],
+  "tam_regions": [],
+  "sam_regions": [
+    {
+      "id": "103644278",
+      "label": "United States"
+    },
+    {
+      "id": "101165590",
+      "label": "United Kingdom"
+    },
+    {
+      "id": "105015875",
+      "label": "France"
+    },
+    {
+      "id": "101282230",
+      "label": "Germany"
+    }
+  ],
+  "som_filter": {
+    "headcount_growth_min": 10
+  },
+  "som_share": 0.05,
+  "buyer": {
+    "function": "25",
+    "seniority": [
+      "220",
+      "300",
+      "310"
+    ]
+  },
+  "counts": {
+    "tam": {
+      "C": "73K+",
+      "D": "15K+",
+      "E": "3.5K+"
+    },
+    "sam": {
+      "C": "27K+",
+      "D": "7K+",
+      "E": "2K+"
+    },
+    "som_accounts": "9.5K+",
+    "sam_buyers": "19K+"
+  },
+  "sample": {
+    "exported": 10,
+    "matched": 7,
+    "safe": 4,
+    "note": "Evaboot export of 10 sales leaders (people search filtered on where they live; the headquarters version also shows 19K+), 2026-11-03, 10 credits"
+  }
+}

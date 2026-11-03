@@ -1,0 +1,14 @@
+{
+  "name": "evaboot-labs-tam-calculator",
+  "owner": { "name": "Evaboot", "url": "https://evaboot.com" },
+  "metadata": {
+    "description": "TAM, SAM and SOM from real LinkedIn Sales Navigator account counts, without double counting."
+  },
+  "plugins": [
+    {
+      "name": "tam-calculator",
+      "source": "./",
+      "description": "Calculate TAM, SAM and SOM bottom-up from LinkedIn Sales Navigator account counts: one account search per company-size band, a SAM and SOM filter, counts times ACV, with double-counting checks."
+    }
+  ]
+}

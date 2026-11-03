@@ -1,0 +1,7 @@
+{"layout": "flow", "eyebrow": "evaboot-labs · tam-calculator", "headline": "Your market, counted.",
+ "subline": "TAM, SAM and SOM from real Sales Navigator account counts.",
+ "nodes": [{"label": "01 · Market", "title": "Your ICP", "caption": "Industry, sizes, countries, ACV"},
+           {"label": "02 · Count", "title": "Sales Navigator", "caption": "One account search per band"},
+           {"label": "03 · Check", "title": "No double count", "caption": "Accounts, not people"},
+           {"label": "04 · Result", "title": "TAM · SAM · SOM", "caption": "Counts x ACV, in one table"}],
+ "spec": "<em>scripts/tam.py</em> · n8n workflow · give this repo to your agent"}
